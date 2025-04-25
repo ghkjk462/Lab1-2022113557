@@ -18,6 +18,8 @@ public class GraphPanel extends JPanel {
     private static final Color TEXT_COLOR = new Color(0, 0, 0);
     private static final Stroke EDGE_STROKE = new BasicStroke(1.0f);
     
+
+    
     public GraphPanel() {
         setBackground(Color.WHITE);
     }
