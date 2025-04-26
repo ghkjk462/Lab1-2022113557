@@ -209,8 +209,8 @@ public class TextGraphGUI extends JFrame {
                 return;
             }
             
-            double pr = processor.calPageRank(word);
-            outputArea.setText(word + "的PageRank值为：" + pr);
+            String result = processor.calPageRank(word);
+            outputArea.setText(result);
             tabbedPane.setSelectedIndex(0); // 切换到文本视图
         });
         

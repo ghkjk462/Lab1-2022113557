@@ -107,8 +107,8 @@ public class TextGraphProcessor {
                     case 5:
                         System.out.println("请输入要计算PageRank的单词：");
                         String word = scanner.nextLine().toLowerCase();
-                        double pr = processor.calPageRank(word);
-                        System.out.println(word + "的PageRank值为：" + pr);
+                        String pr = processor.calPageRank(word);
+                        System.out.println(pr);
                         break;
                     case 6:
                         String walkResult = processor.randomWalk();
@@ -369,14 +369,17 @@ public class TextGraphProcessor {
     }
 
     // 计算PageRank值
-    public double calPageRank(String word) {
+    public String calPageRank(String word) {
         if (!graph.containsKey(word)) {
-            return 0.0;
+            return word + "不在图中，PageRank值为0.0";
         }
         
         // 使用迭代法计算PageRank
         int nodeCount = graph.keySet().size();
         double d = 0.85; // 阻尼因子
+        double epsilon = 1e-6; // 收敛阈值
+        int maxIterations = 100; // 最大迭代次数，防止无限循环
+        
         Map<String, Double> ranks = new HashMap<>();
         Map<String, Double> newRanks = new HashMap<>();
         
@@ -385,8 +388,14 @@ public class TextGraphProcessor {
             ranks.put(node, 1.0 / nodeCount);
         }
         
-        // 迭代10次计算PageRank
-        for (int i = 0; i < 10; i++) {
+        // 迭代计算PageRank直到收敛或达到最大迭代次数
+        boolean converged = false;
+        int iterations = 0;
+        
+        while (!converged && iterations < maxIterations) {
+            iterations++;
+            
+            // 计算新的PageRank值
             for (String node : graph.keySet()) {
                 double sum = 0.0;
                 
@@ -404,11 +413,23 @@ public class TextGraphProcessor {
                 newRanks.put(node, (1.0 - d) / nodeCount + d * sum);
             }
             
+            // 检查是否收敛
+            double diff = 0.0;
+            for (String node : graph.keySet()) {
+                diff += Math.abs(newRanks.get(node) - ranks.get(node));
+            }
+            
+            // 如果差值小于阈值，认为已收敛
+            if (diff < epsilon) {
+                converged = true;
+            }
+            
             // 更新ranks
             ranks = new HashMap<>(newRanks);
         }
         
-        return ranks.get(word);
+        String convergenceStatus = converged ? "收敛" : "达到最大迭代次数";
+        return word + "的PageRank值为：" + ranks.get(word) + " (迭代" + iterations + "次, " + convergenceStatus + ")";
     }
 
     // 随机游走
