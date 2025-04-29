@@ -395,20 +395,33 @@ public class TextGraphProcessor {
         while (!converged && iterations < maxIterations) {
             iterations++;
             
+            // 首先计算出度为0的节点的PR值之和
+            double sumDanglingPR = 0.0;
+            for (String node : graph.keySet()) {
+                if (graph.get(node).isEmpty()) {  // 出度为0的节点
+                    sumDanglingPR += ranks.get(node);
+                }
+            }
+            
             // 计算新的PageRank值
             for (String node : graph.keySet()) {
                 double sum = 0.0;
                 
                 // 找出所有指向该节点的边
                 for (String source : graph.keySet()) {
-                    for (Edge edge : graph.get(source)) {
-                        if (edge.target.equals(node)) {
-                            // 计算该源节点的出度
-                            int outDegree = graph.get(source).size();
-                            sum += ranks.get(source) / outDegree;
+                    if (!graph.get(source).isEmpty()) {  // 只处理出度不为0的节点
+                        for (Edge edge : graph.get(source)) {
+                            if (edge.target.equals(node)) {
+                                // 计算该源节点的出度
+                                int outDegree = graph.get(source).size();
+                                sum += ranks.get(source) / outDegree;
+                            }
                         }
                     }
                 }
+                
+                // 加上来自出度为0节点的贡献（均分给所有节点）
+                sum += sumDanglingPR / nodeCount;
                 
                 newRanks.put(node, (1.0 - d) / nodeCount + d * sum);
             }
