@@ -9,7 +9,8 @@ public class TextGraphGUI extends JFrame {
     private JTextArea outputArea;
     private JTextField word1Field, word2Field, textInputField;
     private JButton loadFileButton, showGraphButton, queryBridgeButton, 
-                  generateTextButton, shortestPathButton, pageRankButton, randomWalkButton;
+                  generateTextButton, shortestPathButton, pageRankButton, randomWalkButton,
+                  shortestPathToAllButton;
     private GraphPanel graphPanel;
     private JTabbedPane tabbedPane;
     private JTextField filePathField;
@@ -57,6 +58,9 @@ public class TextGraphGUI extends JFrame {
         // 最短路径按钮复用word1Field和word2Field
         shortestPathButton = new JButton("4. 计算最短路径");
         
+        // 添加计算到所有单词最短路径的按钮
+        shortestPathToAllButton = new JButton("4.1 计算到所有单词的最短路径");
+        
         // PageRank按钮复用word1Field
         pageRankButton = new JButton("5. 计算PageRank");
         
@@ -67,6 +71,7 @@ public class TextGraphGUI extends JFrame {
         buttonPanel.add(bridgePanel);
         buttonPanel.add(genTextPanel);
         buttonPanel.add(shortestPathButton);
+        buttonPanel.add(shortestPathToAllButton);
         buttonPanel.add(pageRankButton);
         buttonPanel.add(randomWalkButton);
         
@@ -197,6 +202,24 @@ public class TextGraphGUI extends JFrame {
             tabbedPane.setSelectedIndex(0); // 切换到文本视图
         });
         
+        // 添加计算到所有单词最短路径的按钮事件处理
+        shortestPathToAllButton.addActionListener(e -> {
+            if (processor == null) {
+                outputArea.setText("请先加载文件");
+                return;
+            }
+            
+            String word = word1Field.getText().toLowerCase();
+            if (word.isEmpty()) {
+                outputArea.setText("请在单词1输入框中输入起始单词");
+                return;
+            }
+            
+            String result = processor.calcShortestPathToAll(word);
+            outputArea.setText(result);
+            tabbedPane.setSelectedIndex(0); // 切换到文本视图
+        });
+        
         pageRankButton.addActionListener(e -> {
             if (processor == null) {
                 outputArea.setText("请先加载文件");
@@ -277,6 +300,7 @@ public class TextGraphGUI extends JFrame {
         queryBridgeButton.setEnabled(enable);
         generateTextButton.setEnabled(enable);
         shortestPathButton.setEnabled(enable);
+        shortestPathToAllButton.setEnabled(enable);
         pageRankButton.setEnabled(enable);
         randomWalkButton.setEnabled(enable);
     }

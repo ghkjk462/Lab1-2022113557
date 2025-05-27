@@ -1,12 +1,14 @@
 import java.io.*;
 import java.util.*;
 import javax.swing.JTextArea;
+import java.security.SecureRandom;
 
 public class TextGraphProcessor {
     // 图的数据结构
     private Map<String, Set<Edge>> graph = new HashMap<>();
     private String inputFileName;
     private List<String> wordSequence = new ArrayList<>();
+    private final SecureRandom secureRandom = new SecureRandom();
 
     // 边类
     static class Edge {
@@ -40,17 +42,24 @@ public class TextGraphProcessor {
 
     // 获取图结构
     public Map<String, Set<Edge>> getGraph() {
-        return graph;
+        // 创建防御性副本避免暴露内部表示
+        Map<String, Set<Edge>> graphCopy = new HashMap<>();
+        for (Map.Entry<String, Set<Edge>> entry : graph.entrySet()) {
+            graphCopy.put(entry.getKey(), new HashSet<>(entry.getValue()));
+        }
+        return graphCopy;
     }
 
     // 添加一个方法来获取单词序列
     public List<String> getWordSequence() {
-        return wordSequence;
+        // 返回防御性复制而非直接引用
+        return new ArrayList<>(wordSequence);
     }
 
     // 主方法
     public static void main(String[] args) {
-        Scanner scanner = new Scanner(System.in);
+        // 使用明确指定的UTF-8编码而非默认编码
+        Scanner scanner = new Scanner(System.in, "UTF-8");
         String fileName;
 
         // 允许用户选择或输入文件名
@@ -70,7 +79,7 @@ public class TextGraphProcessor {
                 System.out.println("1. 显示有向图");
                 System.out.println("2. 查询桥接词");
                 System.out.println("3. 根据桥接词生成新文本");
-                System.out.println("4. 计算两个单词之间的最短路径");
+                System.out.println("4. 计算最短路径(输入一个或两个单词)");
                 System.out.println("5. 计算PageRank值");
                 System.out.println("6. 随机游走");
                 System.out.println("0. 退出");
@@ -97,12 +106,20 @@ public class TextGraphProcessor {
                         System.out.println("生成的新文本：" + newText);
                         break;
                     case 4:
-                        System.out.println("请输入第一个单词：");
+                        System.out.println("请输入第一个单词(如果只输入一个单词,将计算到所有其他单词的最短路径)：");
                         word1 = scanner.nextLine().toLowerCase();
-                        System.out.println("请输入第二个单词：");
+                        System.out.println("请输入第二个单词(直接按回车跳过以计算到所有单词的路径)：");
                         word2 = scanner.nextLine().toLowerCase();
-                        String path = processor.calcShortestPath(word1, word2);
-                        System.out.println(path);
+                        
+                        if (word2.isEmpty()) {
+                            // 如果只输入了一个单词,计算到所有单词的最短路径
+                            String allPaths = processor.calcShortestPathToAll(word1);
+                            System.out.println(allPaths);
+                        } else {
+                            // 计算两个指定单词之间的最短路径
+                            String path = processor.calcShortestPath(word1, word2);
+                            System.out.println(path);
+                        }
                         break;
                     case 5:
                         System.out.println("请输入要计算PageRank的单词：");
@@ -134,7 +151,8 @@ public class TextGraphProcessor {
         graph.clear();
         wordSequence.clear();
         
-        BufferedReader reader = new BufferedReader(new FileReader(inputFileName));
+        // 使用明确指定的UTF-8编码而非默认编码
+        BufferedReader reader = new BufferedReader(new InputStreamReader(new FileInputStream(inputFileName), "UTF-8"));
         String line;
         List<String> words = new ArrayList<>();
         
@@ -282,8 +300,7 @@ public class TextGraphProcessor {
                     
                     // 随机选择一个桥接词
                     if (bridges.length > 0) {
-                        Random random = new Random();
-                        String selectedBridge = bridges[random.nextInt(bridges.length)];
+                        String selectedBridge = bridges[secureRandom.nextInt(bridges.length)];
                         result.append(" ").append(selectedBridge);
                     }
                 }
@@ -397,9 +414,9 @@ public class TextGraphProcessor {
             
             // 首先计算出度为0的节点的PR值之和
             double sumDanglingPR = 0.0;
-            for (String node : graph.keySet()) {
-                if (graph.get(node).isEmpty()) {  // 出度为0的节点
-                    sumDanglingPR += ranks.get(node);
+            for (Map.Entry<String, Set<Edge>> entry : graph.entrySet()) {
+                if (entry.getValue().isEmpty()) {  // 出度为0的节点
+                    sumDanglingPR += ranks.get(entry.getKey());
                 }
             }
             
@@ -408,12 +425,15 @@ public class TextGraphProcessor {
                 double sum = 0.0;
                 
                 // 找出所有指向该节点的边
-                for (String source : graph.keySet()) {
-                    if (!graph.get(source).isEmpty()) {  // 只处理出度不为0的节点
-                        for (Edge edge : graph.get(source)) {
+                for (Map.Entry<String, Set<Edge>> entry : graph.entrySet()) {
+                    String source = entry.getKey();
+                    Set<Edge> edges = entry.getValue();
+                    
+                    if (!edges.isEmpty()) {  // 只处理出度不为0的节点
+                        for (Edge edge : edges) {
                             if (edge.target.equals(node)) {
                                 // 计算该源节点的出度
-                                int outDegree = graph.get(source).size();
+                                int outDegree = edges.size();
                                 sum += ranks.get(source) / outDegree;
                             }
                         }
@@ -428,8 +448,8 @@ public class TextGraphProcessor {
             
             // 检查是否收敛
             double diff = 0.0;
-            for (String node : graph.keySet()) {
-                diff += Math.abs(newRanks.get(node) - ranks.get(node));
+            for (Map.Entry<String, Double> entry : ranks.entrySet()) {
+                diff += Math.abs(newRanks.get(entry.getKey()) - entry.getValue());
             }
             
             // 如果差值小于阈值，认为已收敛
@@ -452,9 +472,8 @@ public class TextGraphProcessor {
         }
         
         // 随机选择一个起始节点
-        Random random = new Random();
         List<String> nodes = new ArrayList<>(graph.keySet());
-        String current = nodes.get(random.nextInt(nodes.size()));
+        String current = nodes.get(secureRandom.nextInt(nodes.size()));
         
         StringBuilder path = new StringBuilder(current);
         Set<String> visitedEdges = new HashSet<>();
@@ -468,7 +487,7 @@ public class TextGraphProcessor {
             
             // 转换为列表以便随机选择
             List<Edge> edgeList = new ArrayList<>(edges);
-            Edge selectedEdge = edgeList.get(random.nextInt(edgeList.size()));
+            Edge selectedEdge = edgeList.get(secureRandom.nextInt(edgeList.size()));
             
             // 构造边的唯一标识符
             String edgeId = selectedEdge.source + "->" + selectedEdge.target;
@@ -484,5 +503,25 @@ public class TextGraphProcessor {
         }
         
         return path.toString();
+    }
+
+    // 计算一个单词到所有其他单词的最短路径
+    public String calcShortestPathToAll(String word) {
+        if (!graph.containsKey(word)) {
+            return "单词 \"" + word + "\" 不在图中!";
+        }
+        
+        StringBuilder result = new StringBuilder();
+        result.append("从单词 \"").append(word).append("\" 到其他所有单词的最短路径:\n");
+        
+        // 对图中的每个其他单词计算最短路径
+        for (String target : graph.keySet()) {
+            if (!target.equals(word)) {
+                String path = calcShortestPath(word, target);
+                result.append(path).append("\n");
+            }
+        }
+        
+        return result.toString();
     }
 } 
