@@ -331,7 +331,6 @@ public class TextGraphProcessor {
         }
         distances.put(word1, 0);
         queue.add(new AbstractMap.SimpleEntry<>(word1, 0));
-        
         while (!queue.isEmpty()) {
             String current = queue.poll().getKey();
             
@@ -344,7 +343,7 @@ public class TextGraphProcessor {
             }
             
             visited.add(current);
-            
+
             // 检查邻居节点
             for (Edge edge : graph.get(current)) {
                 String neighbor = edge.target;
@@ -357,12 +356,10 @@ public class TextGraphProcessor {
                 }
             }
         }
-        
         // 构建路径
         if (distances.get(word2) == Integer.MAX_VALUE) {
             return "No path from \"" + word1 + "\" to \"" + word2 + "\"!";
         }
-        
         List<String> path = new ArrayList<>();
         String current = word2;
         
@@ -370,9 +367,7 @@ public class TextGraphProcessor {
             path.add(current);
             current = previous.get(current);
         }
-        
         Collections.reverse(path);
-        
         StringBuilder result = new StringBuilder("The shortest path from \"" + word1 + "\" to \"" + word2 + "\" is: ");
         for (int i = 0; i < path.size(); i++) {
             result.append(path.get(i));
@@ -381,6 +376,7 @@ public class TextGraphProcessor {
             }
         }
         result.append(" (距离: ").append(distances.get(word2)).append(")");
+        
         
         return result.toString();
     }
